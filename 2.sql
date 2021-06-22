@@ -1,0 +1,137 @@
+--USE mvtestmm 
+
+--SELECT TOP (100)
+--[cust_no]
+--,[new_old_cust_flag]
+--,[cust_age]
+--,[DT]
+--DT
+--,CGC_LVL
+--new_old_cust_flag
+--FROM dbo.BL_CUB_D_CUST_GRP_ANALY_PMEN_kudu
+--GROUP BY DT,CGC_LVL 
+
+
+SELECT TOP (100) [cust_no]
+      ,[new_old_cust_flag]
+      ,[cust_age]
+      ,[DT]
+  FROM [mvtestmm].[dbo].[BL_CUB_D_CUST_GRP_ANALY_PMEN_kudu]
+  WHERE new_old_cust_flag = N'新客'
+  --WHERE cust_no = 362428272
+
+
+
+
+
+
+USE mvtestmm;
+
+with cust_group as (
+select basic_info.cust_no 
+from UI_CUSTOM_BASIC_INFO_PMEN_kudu basic_info inner join UI_CUSTOM_R001_CUST_LABEL_PMEN_kudu ROO1_CUST_LABEL 
+on  basic_info.cust_no = ROO1_CUST_LABEL.cust_no and ROO1_CUST_LABEL.dt='20200502'
+inner join UI_CUSTOM_R005_CUST_LABEL_PMEN_kudu  R005_CUST_LABEL
+on basic_info.cust_no = R005_CUST_LABEL.cust_no and R005_CUST_LABEL.dt ='20200502'
+where basic_info.dt = '20200502' and basic_info.qslc_flag = 'Y' AND ROO1_CUST_LABEL.is_bind_third_pay = 'Y'
+and R005_CUST_LABEL.salary_finance_first_sign_date  is not null 
+and R005_CUST_LABEL.salary_finance_first_sign_date >'2019-01-01'
+and R005_CUST_LABEL.max_new_loan_repayment_amt >10000
+),
+ TEMP_YS_SUM_A AS(
+SELECT 
+DT
+,CGC_LVL
+,COUNT(1)             AS CUST_NUM 
+,SUM(CUST_YS_BAL_12RA) AS CUST_YS_BAL_12RA   
+,SUM(FINAL_CGC_SCR)   AS FINAL_CGC_SCR       
+,SUM(AUM_BAL)         AS AUM_BAL             
+,SUM(cast(PPC_SUM AS bigint))         AS PPC_SUM
+,SUM(ZS_BAL)          AS ZS_BAL
+,SUM(CK_YS_BAL)       AS CK_YS_BAL
+,SUM(DK_YS_BAL)       AS DK_YS_BAL
+,SUM(PAZQ_XT_BAL)     AS PAZQ_XT_BAL
+,SUM(YHGLZC_BAL)      AS YHGLZC_BAL
+,SUM(CK_QT_BAL)       AS CK_QT_BAL
+,SUM(HQCK_BAL)        AS HQCK_BAL 
+FROM BL_CUB_D_CUST_GRP_ANALY_PMEN_kudu T1
+left join cust_group
+on T1.cust_no = cust_group.cust_no
+WHERE DT IN ('20200501','20200502','20200503','20200504','20200505','20200506','20200507','20200508','20200509','20200510','20200511','20200512')
+AND (CGC_LVL IN ('CG3') AND NEW_OLD_CUST_FLAG IN (N'新客') AND ZNHK IN ('Y'))
+GROUP BY DT,CGC_LVL 
+),
+TEMP_YS_SUM AS(
+SELECT 
+    DT
+    ,CGC_LVL
+    ,SUM(CUST_NUM)        AS CUST_NUM
+    ,SUM(CASE WHEN CGC_LVL IN ('CG1','CG2','CG3') THEN CUST_NUM ELSE 0 END)    AS HY_CUST_NUM
+    ,SUM(CASE WHEN CGC_LVL IN ('CG2','CG3')  THEN CUST_NUM ELSE 0 END)         AS ZC_CUST_NUM
+    ,SUM(CASE WHEN CGC_LVL ='CG3' THEN CUST_NUM ELSE 0 END)                    AS ZBH_CUST_NUM
+    ,SUM(CUST_YS_BAL_12RA)     AS CUST_YS_BAL_12RA
+    ,SUM(FINAL_CGC_SCR)   AS FINAL_CGC_SCR
+    ,SUM(AUM_BAL)         AS AUM_BAL
+    ,SUM(cast(PPC_SUM AS bigint))         AS PPC_SUM
+    ,SUM(ZS_BAL)          AS ZS_BAL
+    ,SUM(CK_YS_BAL)       AS CK_YS_BAL
+    ,SUM(DK_YS_BAL)       AS DK_YS_BAL
+    ,SUM(PAZQ_XT_BAL)     AS PAZQ_XT_BAL
+    ,SUM(YHGLZC_BAL)      AS YHGLZC_BAL
+    ,SUM(CK_QT_BAL)       AS CK_QT_BAL
+    ,SUM(HQCK_BAL)        AS HQCK_BAL 
+FROM TEMP_YS_SUM_A
+GROUP BY  DT,CGC_LVL
+)
+SELECT 
+ SUBSTRING(T1.DT,1,6)  AS DT
+,SUM(T1.CUST_NUM)      AS CUST_NUM
+,SUM(T1.HY_CUST_NUM )  AS HY_CUST_NUM
+,SUM(T1.ZC_CUST_NUM)   AS ZC_CUST_NUM
+,SUM(T1.ZBH_CUST_NUM)  AS ZBH_CUST_NUM  
+,SUM(T1.CUST_YS_BAL_12RA)   AS CUST_YS_BAL  
+,SUM(T1.FINAL_CGC_SCR) AS FINAL_CGC_SCR
+,SUM(T1.AUM_BAL)       AS AUM_BAL 
+,SUM(cast(T1.PPC_SUM AS bigint))       AS PPC_SUM
+,SUM(T1.ZS_BAL)        AS ZS_BAL 
+,SUM(T1.CK_YS_BAL)     AS CK_YS_BAL
+,SUM(T1.DK_YS_BAL)     AS DK_YS_BAL  
+,SUM(T1.PAZQ_XT_BAL)   AS PAZQ_XT_BAL  
+,SUM(T1.YHGLZC_BAL)    AS YHGLZC_BAL 
+,SUM(T1.CK_QT_BAL)     AS CK_QT_BAL
+,SUM(T1.HQCK_BAL)      AS HQCK_BAL
+,CASE WHEN SUM(T1.CUST_NUM)=0 THEN 0
+      ELSE 1.0*SUM(T1.CUST_YS_BAL_12RA)/SUM(T1.CUST_NUM)
+END                 AS KJ_YS_BAL
+,CASE WHEN SUM(T1.CUST_NUM)=0 THEN 0
+      ELSE 1.0*SUM(T1.AUM_BAL)/SUM(T1.CUST_NUM)
+END                 AS KJ_AUM_BAL
+,CASE WHEN SUM(T1.CUST_NUM)=0 THEN 0
+      ELSE 1.0*SUM(T1.FINAL_CGC_SCR)/SUM(T1.CUST_NUM)
+END                 AS KJ_CGC_SCR
+,CASE WHEN SUM(T1.CUST_NUM)=0 THEN 0
+      ELSE 1.0*SUM(cast(T1.PPC_SUM as bigint))/SUM(T1.CUST_NUM)
+END                 AS KJ_PPC
+,CASE WHEN SUM(T1.CUST_NUM)=0 THEN 0
+      ELSE 1.0*SUM(T1.ZS_BAL)/SUM(T1.CUST_NUM)
+END                 AS KJ_ZS_BAL
+,CASE WHEN SUM(T1.CUST_NUM)=0 THEN 0
+      ELSE 1.0*SUM(T1.CK_YS_BAL)/SUM(T1.CUST_NUM)
+END                 AS KJ_CK_YS_BAL
+,CASE WHEN SUM(T1.CUST_NUM)=0 THEN 0
+      ELSE 1.0*SUM(T1.DK_YS_BAL)/SUM(T1.CUST_NUM)
+END                 AS KJ_DK_YS_BAL
+,CASE WHEN SUM(T1.CUST_NUM)=0 THEN 0
+      ELSE 1.0*SUM(T1.PAZQ_XT_BAL)/SUM(T1.CUST_NUM)
+END                 AS KJ_PAZQ_XT_BAL
+,CASE WHEN SUM(T1.CUST_NUM)=0 THEN 0
+      ELSE 1.0*SUM(T1.YHGLZC_BAL)/SUM(T1.CUST_NUM)
+END                 AS KJ_YHGLZC_BAL
+,CASE WHEN SUM(T1.CUST_NUM)=0 THEN 0
+      ELSE 1.0*SUM(T1.CK_QT_BAL)/SUM(T1.CUST_NUM)
+END                 AS KJ_CK_QT_BAL
+,CASE WHEN SUM(T1.CUST_NUM)=0 THEN 0
+      ELSE 1.0*SUM(T1.HQCK_BAL)/SUM(T1.CUST_NUM)
+END                 AS KJ_HQCK_BAL
+FROM TEMP_YS_SUM T1  
+GROUP BY SUBSTRING(T1.DT,1,6);
