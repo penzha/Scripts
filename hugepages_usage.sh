@@ -25,11 +25,12 @@ function record_Hugepages_info()
 function calc_Hugepages_used()
 {
     HugePages_Free=`get_HugePages_Free`
-    let HugePages_Used=$HugePages_Total-$HugePages_Free
+    let HugePages_Used=($HugePages_Total-$HugePages_Free)*2
 
-    printf "`date`\t$HugePages_Used\n" >> hugepages_usage.log
+    printf "`date "+%4Y-%m-%d %H:%M:%S"`\t$HugePages_Used\n" >> hugepages_usage.log
 }
 
+## main function start from here
 echo > hugepages_usage.log
 
 default_interval=5
@@ -42,7 +43,7 @@ else
 fi
 echo "check interval is $interval seconds"
 
-## main function start from here
+
 record_Hugepages_info
 
 
