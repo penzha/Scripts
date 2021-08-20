@@ -27,11 +27,15 @@ function calc_Hugepages_used()
     HugePages_Free=`get_HugePages_Free`
     let HugePages_Used=($HugePages_Total-$HugePages_Free)*2
 
-    printf "`date "+%4Y-%m-%d %H:%M:%S"`\t$HugePages_Used\n" >> hugepages_usage.log
+    printf "`date "+%4Y-%m-%d %H:%M:%S"`\t$HugePages_Used\n" >> hugepages_usage.log    
+
+    # temporary: use iostat to record disk utilization
+    iostat -x -N -p -t >> disk_usage.log
 }
 
 ## main function start from here
 echo > hugepages_usage.log
+echo > disk_usage.log
 
 default_interval=5
 HugePages_Total=`get_HugePages_Total`
@@ -43,7 +47,7 @@ else
 fi
 echo "check interval is $interval seconds"
 
-
+# hugepage usage
 record_Hugepages_info
 
 
